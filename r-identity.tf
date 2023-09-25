@@ -15,6 +15,16 @@ resource "azurerm_user_assigned_identity" "agic_user_assigned_identity" {
   tags = merge(local.default_tags, var.aks_user_assigned_identity_tags)
 }
 
+resource "azurerm_federated_identity_credential" "agic_fe" {
+  count               = var.oidc_issuer_enabled && var.workload_identity_enabled && var.agic_enabled ? 1 : 0
+  name                = "${local.aks_name}-ServiceAccount-system-agic-ingress-azure"
+  resource_group_name = coalesce(var.aks_user_assigned_identity_resource_group_name, var.resource_group_name)
+  audience            =  ["api://AzureADTokenExchange"]
+  issuer              = azurerm_kubernetes_cluster.aks.oidc_issuer_url
+  parent_id           = azurerm_user_assigned_identity.agic_user_assigned_identity.id
+  subject             = "system:serviceaccount:${var.oidc.kubernetes_namespace}:${var.oidc.kubernetes_serviceaccount_name}"
+}
+
 
 resource "azurerm_role_assignment" "aks_uai_private_dns_zone_contributor" {
   count = local.is_custom_dns_private_cluster && var.private_dns_zone_role_assignment_enabled ? 1 : 0
