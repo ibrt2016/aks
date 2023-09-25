@@ -22,7 +22,7 @@ resource "azurerm_federated_identity_credential" "agic_fe" {
   audience            =  ["api://AzureADTokenExchange"]
   issuer              = azurerm_kubernetes_cluster.aks.oidc_issuer_url
   parent_id           = azurerm_user_assigned_identity.agic_user_assigned_identity.id
-  subject             = "system:serviceaccount:${var.oidc.kubernetes_namespace}:${var.oidc.kubernetes_serviceaccount_name}"
+  subject             = "system:serviceaccount:system-agic:ingress-azure"
 }
 
 
