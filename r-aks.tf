@@ -127,6 +127,10 @@ resource "azurerm_kubernetes_cluster" "aks" {
     }
   }
 
+  ingress_application_gateway {
+    gateway_id = 
+  }
+
   depends_on = [
     azurerm_role_assignment.aks_uai_private_dns_zone_contributor,
     azurerm_role_assignment.aks_uai_route_table_contributor,
@@ -167,4 +171,29 @@ resource "azurerm_role_assignment" "aks_user_assigned" {
   principal_id         = azurerm_kubernetes_cluster.aks.kubelet_identity[0].object_id
   scope                = format("/subscriptions/%s/resourceGroups/%s", data.azurerm_subscription.current.subscription_id, azurerm_kubernetes_cluster.aks.node_resource_group)
   role_definition_name = "Contributor"
+}
+
+
+resource "null_resource" "enable_azuremonitormetrics" {
+  # for windows
+  count = var.managed_prometheus_grafana_enabled ? 1 : 0
+  provisioner "local-exec" {
+    interpreter = ["PowerShell", "-Command"]
+    command     = <<-EOT
+
+      az aks update --enable-azuremonitormetrics `
+                    -g ${azurerm_kubernetes_cluster.aks.resource_group_name} `
+                    -n ${azurerm_kubernetes_cluster.aks.name} `
+                    --azure-monitor-workspace-resource-id ${azapi_resource.prometheus.id}
+    EOT
+  }
+
+  triggers = {
+    "key" = "value1"
+  }
+
+  # for linux
+  # provisioner "local-exec" {
+  #   command    = "az aks update --enable-azuremonitormetrics -g ${azurerm_kubernetes_cluster.aks.resource_group_name} -n ${azurerm_kubernetes_cluster.aks.name} --azure-monitor-workspace-resource-id ${azapi_resource.prometheus.id}"
+  # }
 }
